@@ -1,20 +1,10 @@
-#!/usr/bin/env python
-# coding: utf-8
+'''
+Quadtree implementation in python for use with h3 indices
+'''
 
-# In[1]:
-
-
-from random import randint, seed
-
-
-# In[2]:
-
+from random import randint, choice, seed
 
 seed(0)
-
-
-# In[3]:
-
 
 class Point(object):
     def __init__(self, x, y):
@@ -23,10 +13,6 @@ class Point(object):
 
     def __repr__(self):
         return f'Point(x={self.x}, y={self.y})'
-
-
-# In[4]:
-
 
 class Rectangle(object):
     def __init__(self, x, y, w, h):
@@ -44,9 +30,11 @@ class Rectangle(object):
                 point.y >= self.y - self.h and
                 point.y < self.y + self.h)
 
-
-# In[5]:
-
+    def intersects(self, area):
+        return not(area.x - area.w > self.x + self.w or
+                   area.x + area.w < self.x - self.w or
+                   area.y - area.h > self.y + self.h or
+                   area.y + area.h < self.y - self.h)
 
 class Quad(object):
     def __init__(self, boundary, capacity):
@@ -100,31 +88,39 @@ class Quad(object):
         self.se = Quad(se, self.capacity)
         self.sw = Quad(sw, self.capacity)
 
+    def query(self, area):
+        return self._query(area, [])
+
+    def _query(self, area, found):
+        if not self.boundary.intersects(area):
+            return found
+        else:
+            for p in self.points:
+                if area.contains(p):
+                    found.append(p)
+
+        if self.divided:
+            self.ne._query(area, found)
+            self.nw._query(area, found)
+            self.se._query(area, found)
+            self.sw._query(area, found)
+
+        return found
+
     def __repr__(self):
         return f'Quad(capacity={self.capacity}, boundary={self.boundary}, points={self.points}, se={self.se}, sw={self.sw}, ne={self.ne}, nw={self.nw}, divided={self.divided})'
 
-
-# In[21]:
-
-
-point = Point(0, 0)
-rect = Rectangle(0, 0, 100, 100)
-quad = Quad(rect, 4)
-rand_points = [Point(randint(1, 10), randint(1, 10)) for _ in range(10)]
-for p in rand_points:
-    quad.insert(p)
-
-
-# In[23]:
-
-
-from lolviz import *
-g = treeviz(quad)
-g.view()
-
-
-# In[ ]:
-
-
-
-
+if __name__ == '__main__':
+    point = Point(0, 0)
+    # print(point)
+    rect = Rectangle(0, 0, 100, 100)
+    # print(rect)
+    quad = Quad(rect, 4)
+    rand_points = [Point(randint(1, 50), randint(1, 50)) for _ in range(20)]
+    # print(rand_points)
+    for p in rand_points:
+        quad.insert(p)
+    print(quad)
+    area = Rectangle(10, 10, 20, 20)
+    queried = quad.query(area)
+    print(queried)
